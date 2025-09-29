@@ -8,15 +8,40 @@ async function copy(oldPath, newPath) {
     console.error('Source and destination file paths are required');
   }
 
-  if (oldPath === newPath) {
-    return;
-  }
-
   try {
+    let srcRealPath;
+    let destRealPath;
+
+    try {
+      srcRealPath = await fs.realpath(oldPath);
+    } catch (err) {
+      console.error('Copy error:', err.message);
+      throw err;
+    }
+
+    try {
+      destRealPath = await fs.realpath(newPath);
+    } catch {
+      destRealPath = null;
+    }
+
+    if (destRealPath && srcRealPath === destRealPath) {
+      return;
+    }
+
     const srcStats = await fs.stat(oldPath);
 
     if (!srcStats.isFile()) {
       console.error('Source is not a regular file');
+    }
+
+    if (destRealPath) {
+      const destStats = await fs.stat(newPath);
+
+      if (destStats.isDirectory()) {
+        console.error('Destination is a directory');
+        throw new Error('Destination is a directory');
+      }
     }
 
     await fs.copyFile(oldPath, newPath);
@@ -34,7 +59,10 @@ if (require.main === module) {
 
   const [oldPath, newPath] = args;
 
-  copy(oldPath, newPath);
+  copy(oldPath, newPath).catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
 }
 
 module.exports = {

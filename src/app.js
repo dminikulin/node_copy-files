@@ -3,14 +3,9 @@
 
 const fs = require('fs/promises');
 
-async function copy() {
-  const args = process.argv.slice(2);
-  const [oldPath, newPath] = args;
-
+async function copy(oldPath, newPath) {
   if (!oldPath || !newPath) {
     console.error('Source and destination file paths are required');
-
-    return;
   }
 
   if (oldPath === newPath) {
@@ -18,6 +13,12 @@ async function copy() {
   }
 
   try {
+    const srcStats = await fs.stat(oldPath);
+
+    if (!srcStats.isFile()) {
+      console.error('Source is not a regular file');
+    }
+
     await fs.copyFile(oldPath, newPath);
   } catch (err) {
     console.error('Copy error:', err.message);
@@ -25,7 +26,15 @@ async function copy() {
 }
 
 if (require.main === module) {
-  copy();
+  const args = process.argv.slice(2);
+
+  if (args.length !== 2) {
+    console.error('Exactly two positional arguments required');
+  }
+
+  const [oldPath, newPath] = args;
+
+  copy(oldPath, newPath);
 }
 
 module.exports = {
